@@ -123,13 +123,29 @@ npm run balance
 - **OpenAI API key** ([get one here](https://platform.openai.com/api-keys))
 - **BNB wallet** with a small amount of BNB for gas (~0.01 BNB is enough to start)
 
-### CLI Commands
+### Option A: Terminal Mining (CLI)
 
 | Command            | Description                                    |
 |--------------------|------------------------------------------------|
 | `npm run init`     | Interactive setup wizard                       |
-| `npm start`        | Start mining                                   |
+| `npm start`        | Start mining (terminal dashboard)              |
 | `npm run balance`  | Check wallet balances and mining stats         |
+
+### Option B: Web Mining (Browser UI)
+
+```bash
+npm run web
+# Open http://localhost:3000 in your browser
+```
+
+A clean web interface where you can configure your wallet, OpenAI key, and mining settings — then start/stop mining with one click. All computation runs locally on your machine; the browser is just the control panel.
+
+| Feature | Terminal (npm start) | Web (npm run web) |
+|---------|---------------------|-------------------|
+| Configuration | `.env` file | Browser form |
+| Dashboard | TUI (blessed) | Web UI |
+| Mining engine | Local CPU | Local CPU |
+| AI generation | OpenAI API | OpenAI API |
 
 ---
 
