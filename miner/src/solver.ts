@@ -91,6 +91,11 @@ export class Solver {
           solutionHash
         );
 
+        // Randomized nonce starting point for fair competition.
+        // Each miner starts at a different random offset in the nonce space,
+        // so slower miners can still win by luck (probabilistic mining).
+        const randomOffset = Math.floor(Math.random() * 2_000_000_000);
+
         // Split nonce range across workers working on the same text
         const workersPerText = Math.max(
           1,
@@ -98,7 +103,7 @@ export class Solver {
         );
         const subIndex = Math.floor(i / candidateTexts.length);
         const nonceRange = Math.floor(this.maxNoncePerText / workersPerText);
-        const nonceStart = subIndex * nonceRange;
+        const nonceStart = randomOffset + subIndex * nonceRange;
         const nonceEnd = nonceStart + nonceRange;
 
         const ext = __filename.endsWith(".ts") ? "worker.ts" : "worker.js";
