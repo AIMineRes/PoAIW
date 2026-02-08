@@ -1,0 +1,11 @@
+node_modules/
+artifacts/
+cache/
+typechain-types/
+coverage/
+.env
+miner/.env
+*.log
+dist/
+miner/node_modules/
+miner/dist/
