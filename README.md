@@ -57,7 +57,7 @@ Mining takes **3 commands**. That's it.
 ```bash
 # 1. Clone and install
 git clone https://github.com/AIMineRes/PoAIW.git
-cd ai-mine/miner
+cd PoAIW/miner
 npm install
 
 # 2. Configure (interactive wizard — just your wallet key + OpenAI key)
