@@ -134,8 +134,19 @@ npm run balance
 ### Option B: Web Mining (Browser UI)
 
 ```bash
+# 1. Clone and install (same as Option A)
+git clone https://github.com/AIMineRes/PoAIW.git
+cd PoAIW/miner
+npm install
+
+# 2. Start the web server
 npm run web
-# Open http://localhost:3000 in your browser
+
+# 3. Open http://localhost:3000 in your browser
+# 4. Enter your wallet private key + OpenAI API key in the form
+# 5. Click "START MINING"
+# 6. Watch real-time mining stats in your browser
+# 7. Click "STOP MINING" when done
 ```
 
 A clean web interface where you can configure your wallet, OpenAI key, and mining settings — then start/stop mining with one click. All computation runs locally on your machine; the browser is just the control panel.
