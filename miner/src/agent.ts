@@ -33,6 +33,7 @@ export class MiningAgent {
   // Track current challenge for fast preemption
   private currentChallengeNumber: bigint = 0n;
   private challengePreempted = false;
+  private lastSeenBlock: bigint = 0n; // Dedup NET events
 
   constructor(config: MinerConfig) {
     this.config = config;
@@ -59,6 +60,10 @@ export class MiningAgent {
 
     // Event listener: detect when another miner solves the challenge
     this.chain.onSolutionFound((miner, challengeNum) => {
+      // Deduplicate: skip if we've already seen this block
+      if (challengeNum <= this.lastSeenBlock) return;
+      this.lastSeenBlock = challengeNum;
+
       if (miner.toLowerCase() !== this.chain.address.toLowerCase()) {
         this.dashboard.log(
           `{yellow-fg}[NET]{/yellow-fg} Block #${challengeNum} solved by ${miner.slice(0, 8)}...`
