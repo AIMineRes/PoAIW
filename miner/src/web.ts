@@ -277,8 +277,8 @@ function sleep(ms: number) {
 
 // ======================== WebSocket Handler ========================
 
-wss.on("connection", (ws) => {
-  ws.on("message", async (raw) => {
+wss.on("connection", (ws: WebSocket) => {
+  ws.on("message", async (raw: Buffer) => {
     try {
       const msg = JSON.parse(raw.toString());
 
