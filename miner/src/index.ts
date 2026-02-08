@@ -6,6 +6,7 @@ import { MiningAgent } from "./agent";
 import { Dashboard } from "./tui";
 import { ethers } from "ethers";
 import { AIMINE_CORE_ABI, AIMINE_TOKEN_ABI } from "./abi";
+import { checkForUpdates, getVersion } from "./updater";
 
 /**
  * AI Mine - Proof of AI Work Mining Client
@@ -21,7 +22,7 @@ const program = new Command();
 program
   .name("ai-mine")
   .description("AI-Powered Mining Client for AIMine on BNB Chain")
-  .version("1.0.0");
+  .version(getVersion());
 
 // ======================== init ========================
 
@@ -44,6 +45,9 @@ program
   .action(async (opts) => {
     // Show splash
     console.log(Dashboard.showSplash());
+
+    // Check for updates (non-blocking)
+    await checkForUpdates();
 
     // Load config from .env
     const config = loadConfig();
