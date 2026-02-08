@@ -176,6 +176,16 @@ export class Solver {
             resolve({ found: false, totalTried });
           }
         });
+
+        // Handle worker termination (e.g., from solver.stop() during preemption)
+        worker.on("exit", () => {
+          completedWorkers++;
+          if (completedWorkers >= totalWorkers && !resolved) {
+            resolved = true;
+            this._isRunning = false;
+            resolve({ found: false, totalTried });
+          }
+        });
       }
     });
   }
