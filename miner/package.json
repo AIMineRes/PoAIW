@@ -11,6 +11,7 @@
     "init": "ts-node src/index.ts init",
     "start": "ts-node src/index.ts start",
     "balance": "ts-node src/index.ts balance",
+    "web": "ts-node src/web.ts",
     "help": "ts-node src/index.ts --help"
   },
   "keywords": [
@@ -27,13 +28,17 @@
     "commander": "^14.0.3",
     "dotenv": "^17.2.4",
     "ethers": "^6.16.0",
+    "express": "^5.2.1",
     "inquirer": "^9.3.8",
-    "openai": "^6.18.0"
+    "openai": "^6.18.0",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "@types/blessed": "^0.1.27",
+    "@types/express": "^5.0.6",
     "@types/inquirer": "^9.0.9",
     "@types/node": "^25.2.2",
+    "@types/ws": "^8.18.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }

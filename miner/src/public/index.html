@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Mine - Proof of AI Work</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    background: #0a0a0f;
+    color: #e0e0e0;
+    min-height: 100vh;
+  }
+  .header {
+    text-align: center;
+    padding: 30px 20px 10px;
+    border-bottom: 1px solid #1a1a2e;
+  }
+  .header h1 { color: #00d4ff; font-size: 28px; letter-spacing: 2px; }
+  .header p { color: #666; font-size: 13px; margin-top: 6px; }
+  .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+  /* Config Panel */
+  .config-panel {
+    background: #111118;
+    border: 1px solid #1a1a2e;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .config-panel h2 { color: #00d4ff; font-size: 16px; margin-bottom: 16px; }
+  .form-row { margin-bottom: 14px; }
+  .form-row label {
+    display: block;
+    color: #888;
+    font-size: 12px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .form-row input, .form-row select {
+    width: 100%;
+    padding: 10px 14px;
+    background: #0a0a0f;
+    border: 1px solid #2a2a3e;
+    border-radius: 8px;
+    color: #e0e0e0;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-row input:focus, .form-row select:focus { border-color: #00d4ff; }
+  .form-row input::placeholder { color: #444; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .btn {
+    display: inline-block;
+    padding: 12px 32px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+  .btn-start { background: #00d4ff; color: #000; }
+  .btn-start:hover { background: #00b8e6; }
+  .btn-stop { background: #ff4444; color: #fff; }
+  .btn-stop:hover { background: #dd3333; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-row { text-align: center; margin-top: 20px; }
+
+  /* Dashboard */
+  .dashboard { display: none; }
+  .dashboard.active { display: block; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .stat-card {
+    background: #111118;
+    border: 1px solid #1a1a2e;
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .stat-card .label { color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  .stat-card .value { color: #fff; font-size: 22px; font-weight: bold; margin-top: 4px; }
+  .stat-card .value.green { color: #00ff88; }
+  .stat-card .value.cyan { color: #00d4ff; }
+  .stat-card .value.yellow { color: #ffaa00; }
+
+  /* Hash Log */
+  .log-panel {
+    background: #111118;
+    border: 1px solid #1a1a2e;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .log-panel h3 { color: #00d4ff; font-size: 13px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+  .log-content {
+    height: 240px;
+    overflow-y: auto;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #888;
+  }
+  .log-content::-webkit-scrollbar { width: 4px; }
+  .log-content::-webkit-scrollbar-track { background: transparent; }
+  .log-content::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+  .log-entry.net { color: #ffaa00; }
+  .log-entry.found { color: #00ff88; font-weight: bold; }
+  .log-entry.err { color: #ff4444; }
+  .log-entry.ai { color: #cc66ff; }
+  .log-entry.info { color: #00d4ff; }
+
+  /* Status bar */
+  .status-bar {
+    text-align: center;
+    padding: 10px;
+    font-size: 13px;
+    color: #666;
+    border-top: 1px solid #1a1a2e;
+    margin-top: 20px;
+  }
+  .status-bar .mining { color: #00ff88; }
+  .status-bar .stopped { color: #ff4444; }
+  .status-bar .connecting { color: #ffaa00; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>AI MINE</h1>
+  <p>Proof of AI Work Mining Client</p>
+</div>
+
+<div class="container">
+  <!-- Config Panel -->
+  <div class="config-panel" id="configPanel">
+    <h2>Mining Configuration</h2>
+    <div class="form-row">
+      <label>Wallet Private Key</label>
+      <input type="password" id="privateKey" placeholder="0x..." />
+    </div>
+    <div class="form-row">
+      <label>OpenAI API Key</label>
+      <input type="password" id="openaiKey" placeholder="sk-..." />
+    </div>
+    <div class="form-grid">
+      <div class="form-row">
+        <label>AI Model</label>
+        <select id="aiModel">
+          <option value="gpt-4o-mini">gpt-4o-mini</option>
+          <option value="gpt-4o">gpt-4o</option>
+          <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>CPU Workers</label>
+        <input type="number" id="workers" value="4" min="1" max="32" />
+      </div>
+      <div class="form-row">
+        <label>AI Batch Size</label>
+        <input type="number" id="aiBatch" value="8" min="1" max="32" />
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:8px">
+      <label>Custom RPC (optional)</label>
+      <input type="text" id="customRpc" placeholder="Leave empty for built-in RPC" />
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-start" id="startBtn" onclick="startMining()">START MINING</button>
+    </div>
+  </div>
+
+  <!-- Dashboard (shown after mining starts) -->
+  <div class="dashboard" id="dashboard">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="label">Challenge</div>
+        <div class="value cyan" id="statChallenge">#0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Hash Rate</div>
+        <div class="value yellow" id="statHashRate">0 H/s</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Difficulty</div>
+        <div class="value" id="statDifficulty">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">My Balance</div>
+        <div class="value green" id="statBalance">0 AIT</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Blocks Mined</div>
+        <div class="value green" id="statBlocks">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">BNB Balance</div>
+        <div class="value" id="statBnb">0 BNB</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Network Blocks</div>
+        <div class="value" id="statNetwork">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Block Reward</div>
+        <div class="value green" id="statReward">50 AIT</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Nonces Tried</div>
+        <div class="value" id="statNonces">0</div>
+      </div>
+    </div>
+
+    <div class="log-panel">
+      <h3>Mining Log</h3>
+      <div class="log-content" id="logContent"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-stop" id="stopBtn" onclick="stopMining()">STOP MINING</button>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span id="statusText" class="stopped">Disconnected</span>
+  </div>
+</div>
+
+<script>
+let ws = null;
+
+function startMining() {
+  const config = {
+    privateKey: document.getElementById('privateKey').value.trim(),
+    openaiKey: document.getElementById('openaiKey').value.trim(),
+    aiModel: document.getElementById('aiModel').value,
+    workers: parseInt(document.getElementById('workers').value),
+    aiBatch: parseInt(document.getElementById('aiBatch').value),
+    customRpc: document.getElementById('customRpc').value.trim() || undefined,
+  };
+
+  if (!config.privateKey || !config.privateKey.startsWith('0x')) {
+    alert('Please enter a valid private key (starting with 0x)');
+    return;
+  }
+  if (!config.openaiKey || !config.openaiKey.startsWith('sk-')) {
+    alert('Please enter a valid OpenAI API key (starting with sk-)');
+    return;
+  }
+
+  document.getElementById('startBtn').disabled = true;
+  setStatus('connecting', 'Connecting...');
+
+  // Connect WebSocket
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(protocol + '//' + location.host + '/ws');
+
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ type: 'start', config }));
+    document.getElementById('configPanel').style.display = 'none';
+    document.getElementById('dashboard').classList.add('active');
+    setStatus('mining', 'Mining...');
+  };
+
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.type === 'stats') updateStats(msg.data);
+    if (msg.type === 'log') addLog(msg.data);
+  };
+
+  ws.onclose = () => {
+    setStatus('stopped', 'Disconnected');
+    document.getElementById('startBtn').disabled = false;
+  };
+
+  ws.onerror = () => {
+    setStatus('stopped', 'Connection Error');
+    document.getElementById('startBtn').disabled = false;
+  };
+}
+
+function stopMining() {
+  if (ws) {
+    ws.send(JSON.stringify({ type: 'stop' }));
+    ws.close();
+    ws = null;
+  }
+  document.getElementById('configPanel').style.display = 'block';
+  document.getElementById('dashboard').classList.remove('active');
+  document.getElementById('startBtn').disabled = false;
+  setStatus('stopped', 'Stopped');
+}
+
+function updateStats(s) {
+  if (s.challengeNumber) document.getElementById('statChallenge').textContent = '#' + s.challengeNumber;
+  if (s.hashRate !== undefined) {
+    const hr = s.hashRate;
+    document.getElementById('statHashRate').textContent =
+      hr >= 1000000 ? (hr/1000000).toFixed(1) + ' MH/s' :
+      hr >= 1000 ? (hr/1000).toFixed(1) + ' KH/s' :
+      hr + ' H/s';
+  }
+  if (s.difficulty) document.getElementById('statDifficulty').textContent = s.difficulty;
+  if (s.totalMined !== undefined) document.getElementById('statBalance').textContent = s.totalMined + ' AIT';
+  if (s.blocksMined !== undefined) document.getElementById('statBlocks').textContent = s.blocksMined;
+  if (s.bnbBalance) document.getElementById('statBnb').textContent = s.bnbBalance + ' BNB';
+  if (s.networkSolutions !== undefined) document.getElementById('statNetwork').textContent = s.networkSolutions;
+  if (s.reward) document.getElementById('statReward').textContent = s.reward + ' AIT';
+  if (s.noncesTried !== undefined) document.getElementById('statNonces').textContent = s.noncesTried.toLocaleString();
+  if (s.status) {
+    const clean = s.status.replace(/\{[^}]*\}/g, '');
+    if (clean.includes('MINING')) setStatus('mining', clean);
+    else if (clean.includes('Error') || clean.includes('PAUSED')) setStatus('stopped', clean);
+    else setStatus('connecting', clean);
+  }
+}
+
+function addLog(entry) {
+  const div = document.getElementById('logContent');
+  const line = document.createElement('div');
+  line.className = 'log-entry';
+  const text = entry.message || entry;
+  if (text.includes('[NET]') || text.includes('[SWITCH]')) line.className += ' net';
+  else if (text.includes('[FOUND]') || text.includes('[BLOCK]')) line.className += ' found';
+  else if (text.includes('[ERR]') || text.includes('[FAIL]')) line.className += ' err';
+  else if (text.includes('[AI]')) line.className += ' ai';
+  else if (text.includes('[NEW]') || text.includes('[FAST]')) line.className += ' info';
+  // Strip blessed color tags
+  line.textContent = text.replace(/\{[^}]*\}/g, '');
+  div.appendChild(line);
+  div.scrollTop = div.scrollHeight;
+  // Keep max 200 lines
+  while (div.children.length > 200) div.removeChild(div.firstChild);
+}
+
+function setStatus(cls, text) {
+  const el = document.getElementById('statusText');
+  el.className = cls;
+  el.textContent = text;
+}
+</script>
+</body>
+</html>
