@@ -7,6 +7,8 @@
     "test": "hardhat test",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
     "deploy:testnet": "hardhat run scripts/deploy.ts --network bscTestnet",
+    "deploy:mainnet": "hardhat run scripts/deploy.ts --network bscMainnet",
+    "set-difficulty": "hardhat run scripts/set-difficulty.ts --network bscMainnet",
     "node": "hardhat node"
   },
   "keywords": [
