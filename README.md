@@ -18,6 +18,7 @@
 
 <p align="center">
   <a href="#quick-start">Quick Start</a> &bull;
+  <a href="#mine-with-openclaw">OpenClaw</a> &bull;
   <a href="#how-it-works">How It Works</a> &bull;
   <a href="#tokenomics">Tokenomics</a> &bull;
   <a href="#terminal-dashboard">Dashboard</a> &bull;
@@ -157,6 +158,23 @@ A clean web interface where you can configure your wallet, OpenAI key, and minin
 | Dashboard | TUI (blessed) | Web UI |
 | Mining engine | Local CPU | Local CPU |
 | AI generation | OpenAI API | OpenAI API |
+
+### Option C: Mine with OpenClaw
+
+Install, configure, and start/stop AIT mining entirely from [OpenClaw](https://github.com/openclaw/openclaw) — no terminal or manual file edits. Add the aimine skill, then use natural language (English).
+
+| What you want | Example |
+|---------------|---------|
+| Install miner | "install AIT mining" |
+| Configure     | "configure AIT mining" |
+| Start mining  | "start mining" |
+| Stop mining   | "stop mining" |
+| Status        | "mining status" |
+| Balance       | "AIT balance" |
+
+**1. Install the aimine skill (one-time)** — From [ClawHub](https://clawhub.ai/nancyuahon/aimine): `npx clawhub@latest install nancyuahon/aimine`. Or copy `openclaw-skill-aimine` to `~/.openclaw/skills/`.
+**2. Set your keys once** in OpenClaw skill config: `PRIVATE_KEY` and `OPENAI_KEY` (or `OPENAI_API_KEY`). Or provide them in chat when you say "configure mining". If you get "invalid API key", use `OPENAI_API_KEY` as the env var name or ensure the key has no extra spaces and starts with `sk-`.
+**3. In OpenClaw, say** the phrases in the table above. The agent runs clone + npm install, writes `.env`, and starts the miner (no need to run `npm run web` yourself). Miner directory defaults to `~/PoAIW`; override with `AIMINE_DIR`.
 
 ---
 

@@ -91,8 +91,9 @@ export function loadConfig(): MinerConfig | null {
     env[key] = value;
   }
 
-  // Check required user fields
-  if (!env["PRIVATE_KEY"] || !env["OPENAI_KEY"]) return null;
+  // Accept OPENAI_KEY or OPENAI_API_KEY (many systems use OPENAI_API_KEY)
+  const openaiKey = env["OPENAI_KEY"] || env["OPENAI_API_KEY"];
+  if (!env["PRIVATE_KEY"] || !openaiKey) return null;
 
   // Use custom RPC if provided, otherwise pick from built-in list
   const rpcUrl = selectRpc(env["CUSTOM_RPC"] || undefined);
@@ -102,7 +103,7 @@ export function loadConfig(): MinerConfig | null {
     privateKey: env["PRIVATE_KEY"],
     coreContract: CORE_CONTRACT,
     tokenContract: TOKEN_CONTRACT,
-    openaiKey: env["OPENAI_KEY"],
+    openaiKey,
     aiModel: env["AI_MODEL"] || "gpt-4o-mini",
     aiBatchSize: parseInt(env["AI_BATCH_SIZE"] || "8"),
     workers: parseInt(
@@ -111,6 +112,103 @@ export function loadConfig(): MinerConfig | null {
     gasLimit: parseInt(env["GAS_LIMIT"] || "500000"),
     maxNoncePerText: parseInt(env["MAX_NONCE"] || "5000000"),
   };
+}
+
+/**
+ * Escape a value for .env: wrap in double quotes if it contains = or space so it parses correctly.
+ */
+function envValue(val: string): string {
+  const trimmed = val.trim();
+  if (trimmed.includes("=") || trimmed.includes(" ") || trimmed.includes('"')) {
+    return `"${trimmed.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  }
+  return trimmed;
+}
+
+/**
+ * Build .env lines from a key-value set (used by writeEnvFromProcessEnv and writeEnvFromArgs).
+ */
+function buildEnvLines(options: {
+  privateKey: string;
+  openaiKey: string;
+  aiModel?: string;
+  workers?: number;
+  customRpc?: string;
+}): string[] {
+  const workers =
+    options.workers ?? Math.max(1, os.cpus().length - 1);
+  const lines = [
+    "# AI Mine Configuration",
+    `# Generated at ${new Date().toISOString()}`,
+    "",
+    "# === Your Keys (keep these secret!) ===",
+    `PRIVATE_KEY=${envValue(options.privateKey)}`,
+    `OPENAI_KEY=${envValue(options.openaiKey)}`,
+    "",
+    "# === Mining Settings ===",
+    `AI_MODEL=${options.aiModel ?? "gpt-4o-mini"}`,
+    `WORKERS=${workers}`,
+    "AI_BATCH_SIZE=8",
+    "GAS_LIMIT=500000",
+    "MAX_NONCE=5000000",
+    "",
+  ];
+  if (options.customRpc) {
+    lines.splice(7, 0, "", "# === Custom RPC (optional) ===", `CUSTOM_RPC=${options.customRpc}`);
+  }
+  return lines;
+}
+
+/**
+ * Write .env from process.env (PRIVATE_KEY, OPENAI_KEY, etc.).
+ * Used by OpenClaw / non-interactive init (e.g. ai-mine init --from-env).
+ * Returns true if .env was written, false if required env vars are missing.
+ */
+export function writeEnvFromProcessEnv(): boolean {
+  const privateKey = process.env["PRIVATE_KEY"]?.trim();
+  const openaiKey = (process.env["OPENAI_KEY"] || process.env["OPENAI_API_KEY"])?.trim();
+  if (!privateKey || !openaiKey) return false;
+  if (!/^0x[a-fA-F0-9]{64}$/.test(privateKey)) return false;
+  if (!openaiKey.startsWith("sk-")) return false;
+
+  const lines = buildEnvLines({
+    privateKey,
+    openaiKey,
+    aiModel: process.env["AI_MODEL"] || undefined,
+    workers: process.env["WORKERS"] ? parseInt(process.env["WORKERS"], 10) : undefined,
+    customRpc: process.env["CUSTOM_RPC"] || undefined,
+  });
+  fs.writeFileSync(ENV_FILE, lines.join("\n"), "utf-8");
+  return true;
+}
+
+/**
+ * Options for writing .env from explicit args (e.g. CLI --private-key / --openai-key).
+ */
+export interface WriteEnvArgsOptions {
+  privateKey: string;
+  openaiKey: string;
+  aiModel?: string;
+  workers?: number;
+}
+
+/**
+ * Write .env from explicit arguments. Used when user provides keys in chat (OpenClaw).
+ */
+export function writeEnvFromArgs(options: WriteEnvArgsOptions): void {
+  const { privateKey, openaiKey } = options;
+  if (!/^0x[a-fA-F0-9]{64}$/.test(privateKey)) {
+    throw new Error("PRIVATE_KEY must be a 64-char hex string starting with 0x");
+  }
+  if (!openaiKey.startsWith("sk-")) {
+    throw new Error("OPENAI_KEY must start with sk-");
+  }
+  const lines = buildEnvLines({
+    ...options,
+    privateKey: privateKey.trim(),
+    openaiKey: openaiKey.trim(),
+  });
+  fs.writeFileSync(ENV_FILE, lines.join("\n"), "utf-8");
 }
 
 /**

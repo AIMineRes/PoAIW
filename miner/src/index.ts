@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { loadConfig, initConfig } from "./config";
+import { loadConfig, initConfig, writeEnvFromProcessEnv, writeEnvFromArgs } from "./config";
 import { MiningAgent } from "./agent";
 import { Dashboard } from "./tui";
 import { ethers } from "ethers";
@@ -28,8 +28,41 @@ program
 
 program
   .command("init")
-  .description("Interactive configuration wizard — set up your .env file")
-  .action(async () => {
+  .description("Interactive configuration wizard or non-interactive (--from-env / --private-key)")
+  .option("--from-env", "Write .env from process.env (PRIVATE_KEY, OPENAI_KEY); for OpenClaw / automation")
+  .option("--private-key <key>", "Wallet private key (0x...); use with --openai-key for non-interactive")
+  .option("--openai-key <key>", "OpenAI API key (sk-...)")
+  .option("--ai-model <model>", "AI model (default: gpt-4o-mini)", "gpt-4o-mini")
+  .option("--workers <n>", "CPU worker threads", (v) => parseInt(v, 10))
+  .action(async (opts) => {
+    if (opts.fromEnv) {
+      const ok = writeEnvFromProcessEnv();
+      if (!ok) {
+        console.error("  Error: PRIVATE_KEY and OPENAI_KEY must be set in environment.");
+        process.exit(1);
+      }
+      console.log("  Configuration written to .env from environment.");
+      return;
+    }
+    if (opts.privateKey != null || opts.openaiKey != null) {
+      if (!opts.privateKey || !opts.openaiKey) {
+        console.error("  Error: Both --private-key and --openai-key are required.");
+        process.exit(1);
+      }
+      try {
+        writeEnvFromArgs({
+          privateKey: opts.privateKey,
+          openaiKey: opts.openaiKey,
+          aiModel: opts.aiModel,
+          workers: opts.workers,
+        });
+        console.log("  Configuration written to .env.");
+      } catch (e: any) {
+        console.error("  Error:", e.message);
+        process.exit(1);
+      }
+      return;
+    }
     console.log(Dashboard.showSplash());
     await initConfig();
   });

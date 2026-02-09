@@ -3,7 +3,7 @@ import http from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import path from "path";
 import os from "os";
-import { MinerConfig, CORE_CONTRACT, TOKEN_CONTRACT, selectRpc } from "./config";
+import { MinerConfig, CORE_CONTRACT, TOKEN_CONTRACT, selectRpc, loadConfig } from "./config";
 import { ChainClient } from "./chain";
 import { AIEngine } from "./ai";
 import { Solver, SolverProgress } from "./solver";
@@ -24,6 +24,7 @@ const wss = new WebSocketServer({ server, path: "/ws" });
 
 // Serve static frontend
 app.use(express.static(path.join(__dirname, "public")));
+app.use(express.json());
 
 // Mining state
 let miningActive = false;
@@ -32,6 +33,19 @@ let chain: ChainClient | null = null;
 let ai: AIEngine | null = null;
 let solver: Solver | null = null;
 let shouldStop = false;
+
+/** Last known stats for GET /api/status (updated during mining) */
+const lastApiStats: {
+  blocksMined: number;
+  bnbBalance: string;
+  tokenBalance: string;
+  hashRate: string;
+} = {
+  blocksMined: 0,
+  bnbBalance: "0",
+  tokenBalance: "0",
+  hashRate: "0",
+};
 
 /**
  * Send a message to the connected WebSocket client
@@ -98,21 +112,25 @@ async function mineLoop(ws: WebSocket, config: MinerConfig) {
 
   send(ws, "stats", { status: "Connecting..." });
 
-  // Update balances
+  // Update balances and lastApiStats for GET /api/status
   async function updateBalances() {
     try {
-      const [tokenBal, bnbBal, stats, totalSolutions, tokenSupply] =
-        await Promise.all([
-          chain!.getTokenBalance(),
-          chain!.getBnbBalance(),
-          chain!.getMinerStats(),
-          chain!.getTotalSolutions(),
-          chain!.getTokenTotalSupply(),
-        ]);
+      const [tokenBal, bnbBal, stats, totalSolutions] = await Promise.all([
+        chain!.getTokenBalance(),
+        chain!.getBnbBalance(),
+        chain!.getMinerStats(),
+        chain!.getTotalSolutions(),
+      ]);
+      const totalMined = parseFloat(ethers.formatEther(tokenBal)).toFixed(2);
+      const bnbStr = parseFloat(ethers.formatEther(bnbBal)).toFixed(4);
+      const blocks = Number(stats.solutions);
+      lastApiStats.tokenBalance = totalMined;
+      lastApiStats.bnbBalance = bnbStr;
+      lastApiStats.blocksMined = blocks;
       send(ws, "stats", {
-        totalMined: parseFloat(ethers.formatEther(tokenBal)).toFixed(2),
-        bnbBalance: parseFloat(ethers.formatEther(bnbBal)).toFixed(4),
-        blocksMined: Number(stats.solutions),
+        totalMined,
+        bnbBalance: bnbStr,
+        blocksMined: blocks,
         networkSolutions: Number(totalSolutions),
       });
     } catch {}
@@ -168,6 +186,7 @@ async function mineLoop(ws: WebSocket, config: MinerConfig) {
         localTexts,
         challenge.difficultyTarget,
         (p: SolverProgress) => {
+          lastApiStats.hashRate = String(p.hashRate);
           send(ws, "stats", { hashRate: p.hashRate, noncesTried: p.tried });
         }
       );
@@ -197,6 +216,7 @@ async function mineLoop(ws: WebSocket, config: MinerConfig) {
           aiTexts,
           challenge.difficultyTarget,
           (p: SolverProgress) => {
+            lastApiStats.hashRate = String(p.hashRate);
             send(ws, "stats", {
               hashRate: p.hashRate,
               noncesTried: firstResult.totalTried + p.tried,
@@ -274,6 +294,56 @@ function formatDifficulty(d: bigint): string {
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
+
+// ======================== HTTP API (for OpenClaw / automation) ========================
+
+app.get("/api/status", (_req, res) => {
+  const config = loadConfig();
+  if (!config) {
+    res.status(503).json({
+      miningActive: false,
+      error: "Not configured. Run init (e.g. ai-mine init --from-env) first.",
+    });
+    return;
+  }
+  res.json({
+    miningActive,
+    blocksMined: lastApiStats.blocksMined,
+    bnbBalance: lastApiStats.bnbBalance,
+    tokenBalance: lastApiStats.tokenBalance,
+    hashRate: lastApiStats.hashRate,
+  });
+});
+
+app.post("/api/start", (_req, res) => {
+  const config = loadConfig();
+  if (!config) {
+    res.status(503).json({
+      error: "Not configured. Run init (e.g. ai-mine init --from-env) first.",
+    });
+    return;
+  }
+  if (miningActive) {
+    res.status(409).json({ error: "Mining already active." });
+    return;
+  }
+  // Dummy WebSocket so mineLoop can run without a real client
+  const fakeWs = {
+    readyState: 1,
+    send: (_data: string) => {},
+  } as unknown as WebSocket;
+  currentWs = fakeWs as WebSocket;
+  mineLoop(fakeWs as WebSocket, config).catch((err) => {
+    console.error("[api] mineLoop error:", err?.message || err);
+  });
+  res.json({ ok: true, message: "Mining started." });
+});
+
+app.post("/api/stop", (_req, res) => {
+  shouldStop = true;
+  solver?.stop();
+  res.json({ ok: true });
+});
 
 // ======================== WebSocket Handler ========================
 
