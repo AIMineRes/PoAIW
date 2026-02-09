@@ -12,6 +12,10 @@
 <h1 align="center">AI Mine</h1>
 
 <p align="center">
+  <small>English | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.ar.md">العربية</a></small>
+</p>
+
+<p align="center">
   <b>The First Proof of AI Work (PoAIW) Mining Protocol on BNB Chain</b><br/>
   <i>Mine tokens with your brain (AI) + your machine (CPU). No GPU needed.</i>
 </p>
